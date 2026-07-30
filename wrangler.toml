@@ -1,0 +1,9 @@
+name = "1320-scores"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+# KV binding — create the namespace, then paste its id below.
+#   npx wrangler kv namespace create SCORES
+[[kv_namespaces]]
+binding = "SCORES"
+id = "PASTE_YOUR_KV_NAMESPACE_ID_HERE"
