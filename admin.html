@@ -1,0 +1,183 @@
+<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>13:20 · Админка настоек</title>
+<meta name="theme-color" content="#f0e9da">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f0e9da;--paper:#faf6ec;--ink:#17140f;--muted:#8a8172;--line:#2a251d;--red:#e12b1c;
+    --sans:'Manrope',system-ui,sans-serif;--disp:'Oswald',system-ui,sans-serif;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);padding:18px 14px 60px;line-height:1.35}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-family:var(--disp);font-weight:700;text-transform:uppercase;font-size:30px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13px;font-weight:600;margin:0 0 18px}
+  .gate{display:flex;gap:8px;margin:14px 0}
+  input,select{font-family:var(--sans);font-size:15px;border:2px solid var(--ink);border-radius:10px;padding:9px 11px;background:var(--paper);color:var(--ink)}
+  input{width:100%}
+  button{font-family:var(--sans);font-weight:800;font-size:14px;border:2px solid var(--ink);background:var(--ink);color:var(--bg);border-radius:100px;padding:9px 16px;cursor:pointer}
+  button.ghost{background:transparent;color:var(--ink)}
+  button.red{background:var(--red);border-color:var(--red);color:#fff}
+  .row{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:12px;margin:0 0 12px}
+  .row.off{opacity:.5}
+  .r1{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .r1 input{flex:1}
+  .prev{font-size:12px;color:var(--muted);margin:0 0 10px;min-height:15px}
+  .prev .warn{color:var(--red);font-weight:700}
+  .ctrls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px}
+  .ctrls label{font-weight:700;display:flex;align-items:center;gap:5px}
+  .tagbox{display:flex;flex-wrap:wrap;gap:6px}
+  .tagbox span{display:inline-flex;align-items:center;gap:4px;border:1.5px solid var(--ink);border-radius:100px;padding:4px 9px;font-weight:600;font-size:12px}
+  .grp{display:none}
+  .row[data-cat="signature"] .grp{display:flex}
+  .mini{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:8px;padding:5px 9px;font-weight:800;font-size:13px}
+  .mini.del{border-color:var(--red);color:var(--red)}
+  .bar{position:sticky;bottom:0;background:var(--bg);padding:12px 0;display:flex;gap:10px;align-items:center;border-top:2px dashed var(--line);margin-top:8px}
+  .status{font-weight:700;font-size:13px}
+  .status.ok{color:#2e7d32}.status.err{color:var(--red)}
+  .hint{font-size:12px;color:var(--muted);margin:14px 0 0}
+</style></head>
+<body><div class="wrap">
+  <h1>Настойки · админка</h1>
+  <p class="sub">Правишь по-русски — переводы на 4 языка подтянутся сами на сайте.</p>
+
+  <div id="gate" class="gate">
+    <input id="pw" type="password" placeholder="Пароль" autocomplete="current-password">
+    <button id="enter">Войти</button>
+  </div>
+  <div id="app" hidden>
+    <div id="list"></div>
+    <button id="add" class="ghost">+ Добавить настойку</button>
+    <div class="bar">
+      <button id="save" class="red">Сохранить</button>
+      <button id="reload" class="ghost">Обновить</button>
+      <span id="status" class="status"></span>
+    </div>
+    <p class="hint">«В стопе» — временно спрятать (кончилась), не удаляя. Порядок задаётся стрелками. На сайте скрытые и удалённые не показываются.</p>
+  </div>
+</div>
+<script>
+const API = "https://1320-scores.endorphinsgroup.workers.dev";
+const FL = {pineapple:{ru:'Ананас',en:'Pineapple',vi:'Dứa',ko:'파인애플',zh:'菠萝'},
+ grapefruit:{ru:'Грейпфрут',en:'Grapefruit',vi:'Bưởi',ko:'자몽',zh:'西柚'},
+ strawberry:{ru:'Клубника',en:'Strawberry',vi:'Dâu tây',ko:'딸기',zh:'草莓'},
+ tamarind:{ru:'Тамаринд',en:'Tamarind',vi:'Me',ko:'타마린드',zh:'罗望子'},
+ apple:{ru:'Яблоко',en:'Apple',vi:'Táo',ko:'사과',zh:'苹果'},
+ blackberry:{ru:'Ежевика',en:'Blackberry',vi:'Mâm xôi đen',ko:'블랙베리',zh:'黑莓'},
+ blueberry:{ru:'Черника',en:'Blueberry',vi:'Việt quất',ko:'블루베리',zh:'蓝莓'},
+ cherry:{ru:'Вишня',en:'Cherry',vi:'Anh đào',ko:'체리',zh:'樱桃'},
+ raspberry:{ru:'Малина',en:'Raspberry',vi:'Mâm xôi',ko:'라즈베리',zh:'覆盆子'},
+ anise:{ru:'Бадьян',en:'Star anise',vi:'Hoa hồi',ko:'팔각',zh:'八角'},
+ mint:{ru:'Мята',en:'Mint',vi:'Bạc hà',ko:'민트',zh:'薄荷'},
+ mango:{ru:'Манго',en:'Mango',vi:'Xoài',ko:'망고',zh:'芒果'},
+ passion:{ru:'Маракуйя',en:'Passion fruit',vi:'Chanh dây',ko:'패션프루트',zh:'百香果'},
+ vanilla:{ru:'Ваниль',en:'Vanilla',vi:'Vani',ko:'바닐라',zh:'香草'},
+ lychee:{ru:'Личи',en:'Lychee',vi:'Vải',ko:'리치',zh:'荔枝'},
+ pear:{ru:'Груша',en:'Pear',vi:'Lê',ko:'배',zh:'梨'},
+ orange:{ru:'Апельсин',en:'Orange',vi:'Cam',ko:'오렌지',zh:'橙子'},
+ ginger:{ru:'Имбирь',en:'Ginger',vi:'Gừng',ko:'생강',zh:'姜'},
+ limoncello:{ru:'Лимончелло',en:'Limoncello',vi:'Limoncello',ko:'리몬첼로',zh:'柠檬甜酒'},
+ cinnamon:{ru:'Корица',en:'Cinnamon',vi:'Quế',ko:'계피',zh:'肉桂'},
+ banana:{ru:'Банан',en:'Banana',vi:'Chuối',ko:'바나나',zh:'香蕉'},
+ cacao:{ru:'Какао',en:'Cacao',vi:'Ca cao',ko:'카카오',zh:'可可'},
+ lemon:{ru:'Лимон',en:'Lemon',vi:'Chanh',ko:'레몬',zh:'柠檬'},
+ lemongrass:{ru:'Лемонграсс',en:'Lemongrass',vi:'Sả',ko:'레몬그라스',zh:'香茅'},
+ lime:{ru:'Лайм',en:'Lime',vi:'Chanh xanh',ko:'라임',zh:'青柠'}
+};
+const SEED = [{"name": "Ананас", "cat": "distillate", "group": "", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Грейпфрут", "cat": "distillate", "group": "", "tags": ["fresh"], "pips": 1, "off": false}, {"name": "Клубника", "cat": "distillate", "group": "", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Тамаринд", "cat": "distillate", "group": "", "tags": [], "pips": 1, "off": false}, {"name": "Яблоко", "cat": "distillate", "group": "", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Ежевика", "cat": "signature", "group": "dark", "tags": ["sour"], "pips": 1, "off": false}, {"name": "Черника", "cat": "signature", "group": "dark", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Черника / Ежевика", "cat": "signature", "group": "dark", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Вишня", "cat": "signature", "group": "dark", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Клубника", "cat": "signature", "group": "red", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Клубника / Малина / Бадьян", "cat": "signature", "group": "red", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Клубника / Мята", "cat": "signature", "group": "red", "tags": ["fresh"], "pips": 1, "off": false}, {"name": "Манго / Маракуйя", "cat": "signature", "group": "tropic", "tags": ["balanced", "sour"], "pips": 2, "off": false}, {"name": "Маракуйя / Ваниль", "cat": "signature", "group": "tropic", "tags": ["sour"], "pips": 1, "off": false}, {"name": "Маракуйя / Личи", "cat": "signature", "group": "tropic", "tags": ["balanced", "sour"], "pips": 2, "off": false}, {"name": "Ананас / Личи", "cat": "signature", "group": "tropic", "tags": ["fresh"], "pips": 1, "off": false}, {"name": "Груша", "cat": "signature", "group": "tropic", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Апельсин / Имбирь", "cat": "signature", "group": "freshdes", "tags": ["balanced", "sour"], "pips": 2, "off": false}, {"name": "Лимончелло", "cat": "signature", "group": "freshdes", "tags": ["balanced", "sour"], "pips": 2, "off": false}, {"name": "Яблоко / Корица", "cat": "signature", "group": "freshdes", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Банан / Какао", "cat": "signature", "group": "freshdes", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Груша", "cat": "creamy", "group": "", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Банан / Какао", "cat": "creamy", "group": "", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Клубника", "cat": "creamy", "group": "", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Лимончелло", "cat": "creamy", "group": "", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Черника", "cat": "creamy", "group": "", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Ежевика", "cat": "creamy", "group": "", "tags": ["balanced"], "pips": 2, "off": false}, {"name": "Черника / Ежевика", "cat": "creamy", "group": "", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Вишня", "cat": "creamy", "group": "", "tags": ["sweet"], "pips": 3, "off": false}, {"name": "Яблоко / Корица", "cat": "creamy", "group": "", "tags": ["sweet"], "pips": 3, "off": false}];
+const RU2KEY={}; for(const k in FL){ RU2KEY[(FL[k].ru||'').toLowerCase()]=k; }
+const CATS=[['distillate','На дистиллятах (70к)'],['signature','Фирменные (50к)'],['creamy','Сливочные (50к)']];
+const GROUPS=[['dark','Тёмные ягоды'],['red','Красные ягоды'],['tropic','Тропики'],['freshdes','Свежие/десертные']];
+const TAGS=[['sweet','Послаще'],['balanced','Сбаланс.'],['fresh','Посвежее'],['sour','Покислее']];
+const PREVLANGS=[['en','EN'],['vi','VI'],['ko','KO'],['zh','ZH']];
+let items=[];
+
+const el=(t,p={})=>Object.assign(document.createElement(t),p);
+function preview(name){
+  const toks=String(name||'').split('/').map(s=>s.trim()).filter(Boolean);
+  const unknown=toks.filter(t=>!RU2KEY[t.toLowerCase()]);
+  const en=toks.map(t=>{const k=RU2KEY[t.toLowerCase()];return k?FL[k].en:t;}).join(' / ');
+  let s='EN: '+(en||'—');
+  if(unknown.length) s+='  ⚠ нет в словаре: '+unknown.join(', ');
+  return {text:s, warn:unknown.length>0};
+}
+function rowEl(it, idx){
+  const row=el('div',{className:'row'+(it.off?' off':'')}); row.dataset.cat=it.cat||'signature';
+  // r1: name + move/delete
+  const r1=el('div',{className:'r1'});
+  const name=el('input',{value:it.name||'',placeholder:'Название по-русски, напр. Клубника / мята'});
+  name.oninput=()=>{ it.name=name.value; const p=preview(it.name); prev.textContent=p.text; prev.className='prev'+(p.warn?' warn':''); };
+  const up=el('button',{className:'mini',textContent:'↑',title:'Выше'}); up.onclick=()=>{ if(idx>0){[items[idx-1],items[idx]]=[items[idx],items[idx-1]];render();} };
+  const dn=el('button',{className:'mini',textContent:'↓',title:'Ниже'}); dn.onclick=()=>{ if(idx<items.length-1){[items[idx+1],items[idx]]=[items[idx],items[idx+1]];render();} };
+  const del=el('button',{className:'mini del',textContent:'✕',title:'Удалить'}); del.onclick=()=>{ if(confirm('Удалить «'+(it.name||'')+'»?')){items.splice(idx,1);render();} };
+  r1.append(name,up,dn,del); row.append(r1);
+  // preview
+  const prev=el('div'); const p0=preview(it.name); prev.textContent=p0.text; prev.className='prev'+(p0.warn?' warn':''); row.append(prev);
+  // controls
+  const c=el('div',{className:'ctrls'});
+  // раздел
+  const catSel=el('select'); CATS.forEach(([v,l])=>catSel.append(el('option',{value:v,textContent:l,selected:it.cat===v})));
+  catSel.onchange=()=>{ it.cat=catSel.value; row.dataset.cat=it.cat; };
+  const catL=el('label'); catL.append('Раздел:', catSel);
+  // группа
+  const grpSel=el('select'); GROUPS.forEach(([v,l])=>grpSel.append(el('option',{value:v,textContent:l,selected:(it.group||'dark')===v})));
+  grpSel.onchange=()=>{ it.group=grpSel.value; };
+  const grpL=el('label',{className:'grp'}); grpL.append('Группа:', grpSel);
+  // теги
+  const tagWrap=el('div',{className:'tagbox'});
+  TAGS.forEach(([v,l])=>{ const s=el('span'); const cb=el('input',{type:'checkbox',checked:(it.tags||[]).includes(v)});
+    cb.onchange=()=>{ it.tags=it.tags||[]; if(cb.checked){ if(!it.tags.includes(v))it.tags.push(v);} else it.tags=it.tags.filter(x=>x!==v); };
+    s.append(cb,l); tagWrap.append(s); });
+  const tagL=el('label'); tagL.append('Вкладки:', tagWrap);
+  // точки
+  const pipSel=el('select'); [[1,'●○○'],[2,'●●○'],[3,'●●●']].forEach(([v,l])=>pipSel.append(el('option',{value:v,textContent:l,selected:(it.pips||2)==v})));
+  pipSel.onchange=()=>{ it.pips=parseInt(pipSel.value,10); };
+  const pipL=el('label'); pipL.append('Сладость:', pipSel);
+  // в стопе
+  const offCb=el('input',{type:'checkbox',checked:!!it.off}); offCb.onchange=()=>{ it.off=offCb.checked; row.classList.toggle('off',it.off); };
+  const offL=el('label'); offL.append(offCb,'В стопе');
+  c.append(catL,grpL,tagL,pipL,offL); row.append(c);
+  return row;
+}
+function render(){
+  const list=document.getElementById('list'); list.innerHTML='';
+  items.forEach((it,i)=>list.append(rowEl(it,i)));
+}
+async function load(){
+  status('Загрузка…','');
+  try{
+    const r=await fetch(API+'/infusions'); const d=await r.json();
+    items = (d && d.items && d.items.length) ? d.items : JSON.parse(JSON.stringify(SEED));
+  }catch(e){ items=JSON.parse(JSON.stringify(SEED)); }
+  render(); status(items.length+' позиций загружено','ok');
+}
+function status(t,cls){ const s=document.getElementById('status'); s.textContent=t; s.className='status '+(cls||''); }
+async function save(){
+  const pw=localStorage.getItem('1320-admin-pw')||'';
+  status('Сохранение…','');
+  try{
+    const r=await fetch(API+'/infusions',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pw, items})});
+    if(r.status===401){ status('Неверный пароль','err'); return; }
+    if(!r.ok){ status('Ошибка сохранения','err'); return; }
+    status('Сохранено ✓ — на сайте обновится сразу','ok');
+  }catch(e){ status('Нет сети','err'); }
+}
+document.getElementById('enter').onclick=()=>{
+  const pw=document.getElementById('pw').value.trim();
+  if(!pw) return;
+  localStorage.setItem('1320-admin-pw',pw);
+  document.getElementById('gate').hidden=true;
+  document.getElementById('app').hidden=false;
+  load();
+};
+document.getElementById('add').onclick=()=>{ items.push({name:'',cat:'signature',group:'dark',tags:[],pips:2,off:false}); render(); window.scrollTo(0,document.body.scrollHeight); };
+document.getElementById('save').onclick=save;
+document.getElementById('reload').onclick=load;
+// auto-login if pw remembered
+if(localStorage.getItem('1320-admin-pw')){
+  document.getElementById('pw').value=localStorage.getItem('1320-admin-pw');
+}
+</script>
+</body></html>
