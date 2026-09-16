@@ -127,7 +127,7 @@
   .gbar b{font-family:var(--disp);font-weight:700;text-transform:uppercase;font-size:20px;letter-spacing:.02em}
   #g-close{font-family:var(--sans);font-weight:800;font-size:20px;line-height:1;background:transparent;border:none;color:var(--ink);cursor:pointer;padding:4px 8px}
   .gwrap{width:100%;max-width:440px;margin:0 auto;border:2.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#f7f2e6}
-  #g-canvas{display:block;width:100%;aspect-ratio:440/300;touch-action:manipulation}
+  #g-canvas{display:block;width:100%;height:auto;touch-action:manipulation}
   #g-hud{font-family:var(--disp);font-weight:700;font-size:18px;margin:10px 0 0;letter-spacing:.03em}
   #g-hud .best{color:var(--muted);font-size:14px}
   #g-hud .ginv{color:var(--red);font-weight:800;font-size:15px;margin-left:8px}
@@ -653,11 +653,9 @@ function gInit(){
   G.ctx = G.cv.getContext('2d');
   G.best = parseInt(localStorage.getItem('1320-best')||'0',10);
   G.resize = ()=>{
-    const rectW = G.cv.clientWidth || Math.min(G.cv.parentElement.clientWidth||440, 440);
-    const rectH = G.cv.clientHeight || Math.round(rectW*300/440);
-    G.W = rectW; G.H = rectH; G.ground = Math.round(rectH*0.86);
+    G.W = 440; G.H = 300; G.ground = 258;
     G.dpr = window.devicePixelRatio||1;
-    G.cv.width = rectW*G.dpr; G.cv.height = rectH*G.dpr;
+    G.cv.width = G.W*G.dpr; G.cv.height = G.H*G.dpr;
     G.ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
     if(G.state!=='run') gDraw();
   };
