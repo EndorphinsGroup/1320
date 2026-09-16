@@ -126,8 +126,8 @@
   .gbar{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .gbar b{font-family:var(--disp);font-weight:700;text-transform:uppercase;font-size:20px;letter-spacing:.02em}
   #g-close{font-family:var(--sans);font-weight:800;font-size:20px;line-height:1;background:transparent;border:none;color:var(--ink);cursor:pointer;padding:4px 8px}
-  .gwrap{width:100%;max-width:440px;margin:0 auto;border:2.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#f7f2e6}
-  #g-canvas{display:block;width:100%;height:auto;touch-action:manipulation}
+  .gwrap{width:100%;max-width:460px;margin:0 auto;border:2.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#f7f2e6}
+  #g-canvas{display:block;width:100%;touch-action:manipulation}
   #g-hud{font-family:var(--disp);font-weight:700;font-size:18px;margin:10px 0 0;letter-spacing:.03em}
   #g-hud .best{color:var(--muted);font-size:14px}
   #g-hud .ginv{color:var(--red);font-weight:800;font-size:15px;margin-left:8px}
@@ -599,7 +599,7 @@ loadInfusions();
 <button id="playbtn" class="playbtn" hidden><span class="pd">🎮</span><span id="playbtn-label"></span></button>
 <div id="game-overlay" hidden>
   <div class="gbar"><b id="g-title"></b><button id="g-close" aria-label="Close">✕</button></div>
-  <div class="gwrap"><canvas id="g-canvas" width="460" height="300"></canvas></div>
+  <div class="gwrap"><canvas id="g-canvas" width="460" height="220"></canvas></div>
   <div id="g-hud"><span id="g-score">0</span><span class="best" id="g-best"></span><span id="g-inv" class="ginv"></span></div>
   <p id="g-prize" class="gprize"></p>
   <div id="g-panel" hidden>
@@ -644,7 +644,7 @@ const RUNNER_IMG=new Image(); RUNNER_IMG.src=RUNNER_SRC; let RUNNER_OK=false; RU
 const LOGO_IMG=new Image(); let LOGO_OK=false; LOGO_IMG.onload=()=>{LOGO_OK=true;};
 try{const _m=getComputedStyle(document.documentElement).getPropertyValue("--logo").trim();const _u=_m.match(/url\((["\x27]?)(.*?)\1\)/);if(_u)LOGO_IMG.src=_u[2];}catch(e){}
 const G = {
-  cv:null, ctx:null, W:460, H:300, ground:258, dpr:1,
+  cv:null, ctx:null, W:460, H:220, ground:186, dpr:1,
   raf:0, state:'idle', player:null, obs:[], bonuses:[], speed:0, dist:0, frame:0, nextGap:0, nextBonus:0, inv:0, best:0
 };
 
@@ -653,9 +653,11 @@ function gInit(){
   G.ctx = G.cv.getContext('2d');
   G.best = parseInt(localStorage.getItem('1320-best')||'0',10);
   G.resize = ()=>{
-    G.W = 440; G.H = 300; G.ground = 258;
+    const cssW = Math.min(G.cv.parentElement.clientWidth||460, 460);
+    G.W = cssW; G.H = 220; G.ground = 186;
     G.dpr = window.devicePixelRatio||1;
-    G.cv.width = G.W*G.dpr; G.cv.height = G.H*G.dpr;
+    G.cv.width = cssW*G.dpr; G.cv.height = 220*G.dpr;
+    G.cv.style.height = '220px';
     G.ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
     if(G.state!=='run') gDraw();
   };
@@ -690,7 +692,7 @@ function gJump(){ const p=G.player; if(p.on){ p.vy=-10.6; p.on=false; } }
 
 function gSpawn(){
   const tall = Math.random()<0.22;
-  const h = tall? Math.round(G.H*0.14) : Math.round(G.H*0.10);
+  const h = tall? 40 : 28;
   G.obs.push({ x:G.W+10, w:18, h });
 }
 function gLoop(){
@@ -712,7 +714,7 @@ function gLoop(){
   G.bonuses = G.bonuses.filter(bn=>bn.x+bn.r>-4);
   if(G.inv>0){ G.inv--; if(G.inv===0){ G.nextBonus = 2400 + Math.random()*1200; } }
   /* player hitbox */
-  const px1=48+6, px2=48+17, py1=p.y-Math.round(G.H*0.12), py2=p.y-3;
+  const px1=48+6, px2=48+17, py1=p.y-30, py2=p.y-3;
   /* collect bonus */
   for(const bn of G.bonuses){
     if(!bn.got && px2>bn.x-bn.r && px1<bn.x+bn.r && py2>bn.y-bn.r && py1<bn.y+bn.r){ bn.got=true; G.inv=480; }
@@ -793,7 +795,7 @@ function gInvRing(x, feetY){
 }
 function gBartender(x, feetY, run){
   const c=G.ctx;
-  const h=Math.round(G.H*0.26), ar=(RUNNER_OK&&RUNNER_IMG.naturalWidth)?RUNNER_IMG.naturalWidth/RUNNER_IMG.naturalHeight:0.46;
+  const h=54, ar=(RUNNER_OK&&RUNNER_IMG.naturalWidth)?RUNNER_IMG.naturalWidth/RUNNER_IMG.naturalHeight:0.46;
   const w=h*ar;
   const bob=run?(Math.sin(G.frame/4)*1.5):0;
   const dy=feetY-h+bob;
