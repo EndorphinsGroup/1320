@@ -126,8 +126,8 @@
   .gbar{width:100%;max-width:480px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .gbar b{font-family:var(--disp);font-weight:700;text-transform:uppercase;font-size:20px;letter-spacing:.02em}
   #g-close{font-family:var(--sans);font-weight:800;font-size:20px;line-height:1;background:transparent;border:none;color:var(--ink);cursor:pointer;padding:4px 8px}
-  .gwrap{width:100%;max-width:520px;border:2.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#f7f2e6}
-  #g-canvas{display:block;width:100%;touch-action:manipulation}
+  .gwrap{width:100%;max-width:440px;margin:0 auto;border:2.5px solid var(--ink);border-radius:14px;overflow:hidden;background:#f7f2e6}
+  #g-canvas{display:block;width:100%;aspect-ratio:440/300;touch-action:manipulation}
   #g-hud{font-family:var(--disp);font-weight:700;font-size:18px;margin:10px 0 0;letter-spacing:.03em}
   #g-hud .best{color:var(--muted);font-size:14px}
   #g-hud .ginv{color:var(--red);font-weight:800;font-size:15px;margin-left:8px}
@@ -236,7 +236,7 @@ function dynItem(item){
   d.dataset.taste=(item.tags||[]).join(' ');
   const dash=document.createElement('span');dash.className='dash';dash.textContent='–';
   const nm=document.createElement('span');nm.className='name';nm.textContent=resolveName(item.name);
-  let p=parseInt(item.pips,10); if(!(p>=1&&p<=3))p=2;
+  const p=pipCount((item.tags||[]).join(' '));
   d.append(dash,nm,pipsSpan(p));return d;
 }
 function renderInfDynamic(body, items){
@@ -374,8 +374,7 @@ const QUIZ={
 
 const MENU=[
  {cat:'distillate',price:70,items:[
-   {f:['pineapple'],t:'balanced'},{f:['grapefruit'],t:'fresh'},{f:['strawberry'],t:'balanced'},
-   {f:['tamarind'],t:'tamarind'},{f:['apple'],t:'balanced'}
+   {f:['pineapple'],t:'balanced'},{f:['grapefruit'],t:'fresh'},{f:['strawberry'],t:'balanced'},{f:['tamarind'],t:'tamarind'},{f:['apple'],t:'balanced'}
  ]},
  {cat:'signature',price:50,groups:[
    {g:'dark',e:'🫐',items:[{f:['blackberry'],t:'sour'},{f:['blueberry'],t:'sweet'},{f:['blueberry','blackberry'],t:'sweet'},{f:['cherry'],t:'sweet'}]},
@@ -384,8 +383,7 @@ const MENU=[
    {g:'freshdes',e:'🍊',items:[{f:['orange','ginger'],t:'balanced sour'},{f:['limoncello'],t:'balanced sour'},{f:['apple','cinnamon'],t:'sweet'},{f:['banana','cacao'],t:'sweet'}]}
  ]},
  {cat:'creamy',price:50,items:[
-   {f:['pear'],t:'balanced'},{f:['banana','cacao'],t:'sweet'},{f:['strawberry'],t:'sweet'},{f:['limoncello'],t:'balanced'},
-   {f:['blueberry'],t:'sweet'},{f:['blackberry'],t:'balanced'},{f:['blueberry','blackberry'],t:'sweet'},{f:['cherry'],t:'sweet'},{f:['apple','cinnamon'],t:'sweet'}
+   {f:['pear'],t:'balanced'},{f:['banana','cacao'],t:'sweet'},{f:['strawberry'],t:'sweet'},{f:['limoncello'],t:'balanced'},{f:['blueberry'],t:'sweet'},{f:['blackberry'],t:'balanced'},{f:['blueberry','blackberry'],t:'sweet'},{f:['cherry'],t:'sweet'},{f:['apple','cinnamon'],t:'sweet'}
  ]}
 ];
 
@@ -655,10 +653,11 @@ function gInit(){
   G.ctx = G.cv.getContext('2d');
   G.best = parseInt(localStorage.getItem('1320-best')||'0',10);
   G.resize = ()=>{
-    const cssW = Math.min(G.cv.parentElement.clientWidth||460, 460);
-    G.W = cssW; G.dpr = window.devicePixelRatio||1;
-    G.cv.width = cssW*G.dpr; G.cv.height = G.H*G.dpr;
-    G.cv.style.height = G.H+'px';
+    const rectW = G.cv.clientWidth || Math.min(G.cv.parentElement.clientWidth||440, 440);
+    const rectH = G.cv.clientHeight || Math.round(rectW*300/440);
+    G.W = rectW; G.H = rectH; G.ground = Math.round(rectH*0.86);
+    G.dpr = window.devicePixelRatio||1;
+    G.cv.width = rectW*G.dpr; G.cv.height = rectH*G.dpr;
     G.ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
     if(G.state!=='run') gDraw();
   };
@@ -693,7 +692,7 @@ function gJump(){ const p=G.player; if(p.on){ p.vy=-10.6; p.on=false; } }
 
 function gSpawn(){
   const tall = Math.random()<0.22;
-  const h = tall? 40 : 28;
+  const h = tall? Math.round(G.H*0.14) : Math.round(G.H*0.10);
   G.obs.push({ x:G.W+10, w:18, h });
 }
 function gLoop(){
@@ -715,7 +714,7 @@ function gLoop(){
   G.bonuses = G.bonuses.filter(bn=>bn.x+bn.r>-4);
   if(G.inv>0){ G.inv--; if(G.inv===0){ G.nextBonus = 2400 + Math.random()*1200; } }
   /* player hitbox */
-  const px1=48+6, px2=48+17, py1=p.y-32, py2=p.y-3;
+  const px1=48+6, px2=48+17, py1=p.y-Math.round(G.H*0.12), py2=p.y-3;
   /* collect bonus */
   for(const bn of G.bonuses){
     if(!bn.got && px2>bn.x-bn.r && px1<bn.x+bn.r && py2>bn.y-bn.r && py1<bn.y+bn.r){ bn.got=true; G.inv=480; }
@@ -796,7 +795,7 @@ function gInvRing(x, feetY){
 }
 function gBartender(x, feetY, run){
   const c=G.ctx;
-  const h=64, ar=(RUNNER_OK&&RUNNER_IMG.naturalWidth)?RUNNER_IMG.naturalWidth/RUNNER_IMG.naturalHeight:0.46;
+  const h=Math.round(G.H*0.26), ar=(RUNNER_OK&&RUNNER_IMG.naturalWidth)?RUNNER_IMG.naturalWidth/RUNNER_IMG.naturalHeight:0.46;
   const w=h*ar;
   const bob=run?(Math.sin(G.frame/4)*1.5):0;
   const dy=feetY-h+bob;
